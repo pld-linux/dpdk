@@ -3,13 +3,18 @@
 # - flexran_sdk for drivers/baseband/turbo_sw
 #   (AVX2: libturbo, libcrc, librate_matching, libcommon, libstdc++, libirc, libimf, libipps, libsvml;
 #    AVX512: libldpc_encoder_5gnr, libldpc_decoder_5gnr, libLDPC_ratematch_5gnr, librate_dematching_5gnr)
+#   https://software.intel.com/content/www/us/en/develop/articles/flexran-lte-and-5g-nr-fec-software-development-kit-modules.html (x86_64, proprietary)
 # - musdk (libmusdk) for drivers/common/mvep, drivers/crypto/mvsam, drivers/net/{mvneta,mvpp2}
-# - libisal for drivers/compress/isal
+#   https://github.com/MarvellEmbeddedProcessors/musdk-marvell (aarch64?)
 # - libIPSec_MB for drivers/crypto/{aesni_gcm,aesni_mb,kasumi,snow3g,zuc}
+#   https://github.com/intel/intel-ipsec-mb (x86_64 only)
 # - libAArch64crypto for drivers/crypto/armv8
-# - libbpf for drivers/net/af_xdp
-# - netcope-common for driver/net/nfb
-# - libsze2 for drivers/net/szedata2
+#   https://github.com/ARM-software/AArch64cryptolib (aarch64)
+# - pkgconfig(netcope-common) for driver/net/nfb
+#   https://www.netcope.com/en/company/community-support/dpdk-libsze2 or https://www.liberouter.org/repo/dcpro/base/ - x86_64 only
+# - pkgconfig(libsze2) for drivers/net/szedata2
+#   https://www.netcope.com/en/company/community-support/dpdk-libsze2 - x86_64 only
+#   some old versions at https://homeproj.cesnet.cz/rpm/liberouter/{devel,stable}/SRPMS/
 #
 # Conditional build:
 %bcond_without	apidocs		# API documentation
@@ -33,11 +38,13 @@ BuildRequires:	gcc >= 6:4.7
 BuildRequires:	gcc >= 6:4.8.6
 %endif
 BuildRequires:	jansson-devel
+BuildRequires:	libbpf-devel
 BuildRequires:	libbsd-devel
 BuildRequires:	libfdt-devel
 BuildRequires:	libibverbs-devel
 BuildRequires:	libibverbs-driver-mlx4-devel
 BuildRequires:	libibverbs-driver-mlx5-devel
+BuildRequires:	libisal-devel
 BuildRequires:	libpcap-devel
 BuildRequires:	meson >= 0.47.1
 BuildRequires:	ninja >= 1.5
