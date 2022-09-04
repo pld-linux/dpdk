@@ -22,12 +22,12 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	20.02.1
+Version:	21.11.2
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	fd04cb05c728f474b438c6e7aa1eb195
+# Source0-md5:	86f9c3b9034545172a9f3f2a8cf0f71b
 Patch0:		%{name}-opt.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)

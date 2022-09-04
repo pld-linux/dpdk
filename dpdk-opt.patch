@@ -1,15 +1,15 @@
 --- dpdk-stable-20.02.1/config/meson.build.orig	2020-05-18 12:23:06.000000000 +0200
 +++ dpdk-stable-20.02.1/config/meson.build	2020-05-24 16:19:42.561967025 +0200
 @@ -94,14 +94,6 @@
- dpdk_conf.set('RTE_MACHINE', machine)
+ dpdk_conf.set('RTE_MACHINE', cpu_instruction_set)
  machine_args = []
  
 -# ppc64 does not support -march= at all, use -mcpu and -mtune for that
 -if host_machine.cpu_family().startswith('ppc')
--	machine_args += '-mcpu=' + machine
--	machine_args += '-mtune=' + machine
+-    machine_args += '-mcpu=' + cpu_instruction_set
+-    machine_args += '-mtune=' + cpu_instruction_set
 -else
--	machine_args += '-march=' + machine
+-    machine_args += '-march=' + cpu_instruction_set
 -endif
 -
  toolchain = cc.get_id()
