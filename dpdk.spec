@@ -18,7 +18,11 @@
 #
 # Conditional build:
 %bcond_without	apidocs		# API documentation
+%bcond_without	rte_kni		# RTE_KNI library
 
+%ifnarch %{x8664} aarch64 ppc64
+%undefine	with_rte_kni
+%endif
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
@@ -226,8 +230,10 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_ipsec.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_jobstats.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_jobstats.so.%{abi_ver}
+%if %{with rte_kni}
 %attr(755,root,root) %{_libdir}/librte_kni.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_kni.so.%{abi_ver}
+%endif
 %attr(755,root,root) %{_libdir}/librte_kvargs.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_kvargs.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_latencystats.so.*.*
@@ -352,7 +358,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_ip_frag.so
 %attr(755,root,root) %{_libdir}/librte_ipsec.so
 %attr(755,root,root) %{_libdir}/librte_jobstats.so
+%if %{with rte_kni}
 %attr(755,root,root) %{_libdir}/librte_kni.so
+%endif
 %attr(755,root,root) %{_libdir}/librte_kvargs.so
 %attr(755,root,root) %{_libdir}/librte_latencystats.so
 %attr(755,root,root) %{_libdir}/librte_lpm.so
@@ -426,7 +434,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_ip_frag.a
 %{_libdir}/librte_ipsec.a
 %{_libdir}/librte_jobstats.a
+%if %{with rte_kni}
 %{_libdir}/librte_kni.a
+%endif
 %{_libdir}/librte_kvargs.a
 %{_libdir}/librte_latencystats.a
 %{_libdir}/librte_lpm.a
