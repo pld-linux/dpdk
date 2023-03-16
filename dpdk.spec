@@ -26,12 +26,12 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	21.11.2
+Version:	22.11.1
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	86f9c3b9034545172a9f3f2a8cf0f71b
+# Source0-md5:	0594708fe42ce186a55b0235c6e20cfe
 Patch0:		%{name}-opt.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)
@@ -73,11 +73,11 @@ ExclusiveArch:	%{ix86} %{x8664} x32 %{arm} aarch64 ppc64
 ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
-%define		abi_ver		22
+%define		abi_ver		23
 %define		lib_ver		%{abi_ver}.0
 
-# non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
-%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_distributor.so.* librte_dma_ioat.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_kni.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
+# non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
+%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_distributor.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_kni.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
 
 %description
 DPDK is the Data Plane Development Kit that consists of libraries to
@@ -212,8 +212,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_eventdev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_fib.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_fib.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_flow_classify.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_flow_classify.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_gpudev.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_gpudev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_graph.so.*.*
@@ -349,7 +347,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_ethdev.so
 %attr(755,root,root) %{_libdir}/librte_eventdev.so
 %attr(755,root,root) %{_libdir}/librte_fib.so
-%attr(755,root,root) %{_libdir}/librte_flow_classify.so
 %attr(755,root,root) %{_libdir}/librte_gpudev.so
 %attr(755,root,root) %{_libdir}/librte_graph.so
 %attr(755,root,root) %{_libdir}/librte_gro.so
@@ -425,7 +422,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_ethdev.a
 %{_libdir}/librte_eventdev.a
 %{_libdir}/librte_fib.a
-%{_libdir}/librte_flow_classify.a
 %{_libdir}/librte_gpudev.a
 %{_libdir}/librte_graph.a
 %{_libdir}/librte_gro.a
