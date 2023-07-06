@@ -1,6 +1,6 @@
---- dpdk-stable-20.02.1/config/meson.build.orig	2020-05-18 12:23:06.000000000 +0200
-+++ dpdk-stable-20.02.1/config/meson.build	2020-05-24 16:19:42.561967025 +0200
-@@ -94,14 +94,6 @@
+--- dpdk-23.03/config/meson.build.orig	2023-07-06 18:12:10.077657438 +0200
++++ dpdk-23.03/config/meson.build	2023-07-06 18:17:03.756066445 +0200
+@@ -129,14 +129,6 @@ endif
  dpdk_conf.set('RTE_MACHINE', cpu_instruction_set)
  machine_args = []
  
@@ -14,4 +14,4 @@
 -
  toolchain = cc.get_id()
  dpdk_conf.set_quoted('RTE_TOOLCHAIN', toolchain)
- dpdk_conf.set('RTE_TOOLCHAIN_' + toolchain.to_upper(), 1)
+ dpdk_conf.set('RTE_TOOLCHAIN_' + toolchain.to_upper().underscorify(), 1)

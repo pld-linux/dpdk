@@ -10,6 +10,9 @@
 #   https://github.com/intel/intel-ipsec-mb (x86_64 only)
 # - libAArch64crypto for drivers/crypto/armv8
 #   https://github.com/ARM-software/AArch64cryptolib (aarch64)
+# - pkgconfig(libwd), pkgconfig(libwd_crypto) for drivers/crypto/uadk
+#   https://github.com/Linaro/uadk
+# - cuda for drivers/gpu/cuda
 # - pkgconfig(netcope-common) for driver/net/nfb
 #   https://www.netcope.com/en/company/community-support/dpdk-libsze2 or https://www.liberouter.org/repo/dcpro/base/ - x86_64 only
 # - pkgconfig(libsze2) for drivers/net/szedata2
@@ -26,12 +29,12 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	22.11.1
+Version:	23.03
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	0594708fe42ce186a55b0235c6e20cfe
+# Source0-md5:	3cf8ebbcd412d5726db230f2eeb90cc9
 Patch0:		%{name}-opt.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)
@@ -42,18 +45,22 @@ BuildRequires:	gcc >= 6:4.7
 BuildRequires:	gcc >= 6:4.8.6
 %endif
 BuildRequires:	jansson-devel
+BuildRequires:	libarchive-devel
 BuildRequires:	libbpf-devel
 BuildRequires:	libbsd-devel
 BuildRequires:	libfdt-devel
 BuildRequires:	libibverbs-devel
+BuildRequires:	libibverbs-driver-mana-devel
 BuildRequires:	libibverbs-driver-mlx4-devel
 BuildRequires:	libibverbs-driver-mlx5-devel
 BuildRequires:	libisal-devel
 BuildRequires:	libpcap-devel
-BuildRequires:	meson >= 0.47.1
+BuildRequires:	libxdp-devel
+BuildRequires:	meson >= 0.53.2
 BuildRequires:	ninja >= 1.5
 BuildRequires:	numactl-devel
 BuildRequires:	openssl-devel
+BuildRequires:	pkgconfig
 BuildRequires:	python3 >= 3
 BuildRequires:	python3-elftools
 BuildRequires:	sed >= 4.0
@@ -74,10 +81,10 @@ ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		abi_ver		23
-%define		lib_ver		%{abi_ver}.0
+%define		lib_ver		%{abi_ver}.1
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
-%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_distributor.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_kni.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
+%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_distributor.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_kni.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
 
 %description
 DPDK is the Data Plane Development Kit that consists of libraries to
@@ -131,7 +138,7 @@ API documentation for DPDK libraries.
 Dokumentacja API bibliotek DPDK.
 
 %prep
-%setup -q -n %{name}-stable-%{version}
+%setup -q
 %patch0 -p1
 
 %{__sed} -i -e '1s,/usr/bin/env python3,%{__python3},' \
@@ -248,6 +255,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_meter.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_metrics.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_metrics.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_mldev.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_mldev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_net.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_net.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_node.so.*.*
@@ -366,6 +375,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_mempool.so
 %attr(755,root,root) %{_libdir}/librte_meter.so
 %attr(755,root,root) %{_libdir}/librte_metrics.so
+%attr(755,root,root) %{_libdir}/librte_mldev.so
 %attr(755,root,root) %{_libdir}/librte_net.so
 %attr(755,root,root) %{_libdir}/librte_node.so
 %attr(755,root,root) %{_libdir}/librte_pcapng.so
@@ -441,6 +451,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_mempool.a
 %{_libdir}/librte_meter.a
 %{_libdir}/librte_metrics.a
+%{_libdir}/librte_mldev.a
 %{_libdir}/librte_net.a
 %{_libdir}/librte_node.a
 %{_libdir}/librte_pcapng.a
