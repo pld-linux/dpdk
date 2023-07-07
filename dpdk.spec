@@ -21,7 +21,7 @@
 #
 # Conditional build:
 %bcond_without	apidocs		# API documentation
-%bcond_without	rte_kni		# RTE_KNI library
+%bcond_without	rte_kni		# RTE_KNI library (deprecated)
 
 %ifnarch %{x8664} aarch64 ppc64
 %undefine	with_rte_kni
@@ -151,6 +151,7 @@ Dokumentacja API bibliotek DPDK.
 %meson build \
 	--default-library=shared \
 	--includedir=%{_includedir}/dpdk \
+	-Ddisable_libs=%{!?with_rte_kni:kni} \
 	%{?with_apidocs:-Denable_docs=true}
 
 # TODO: -Denable_kmods=true
@@ -219,6 +220,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_eventdev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_fib.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_fib.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_flow_classify.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_flow_classify.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_gpudev.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_gpudev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_graph.so.*.*
@@ -309,6 +312,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_dma_*.so*
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_event_*.so*
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_mempool_*.so*
+%ifarch %{x8664} aarch64 ppc64
+%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_ml_cnxk.so*
+%endif
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_net_*.so*
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_raw_*.so*
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_regex_*.so*
@@ -330,6 +336,10 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_event_*.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_mempool_*.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_mempool_*.so.%{abi_ver}
+%ifarch %{x8664} aarch64 ppc64
+%attr(755,root,root) %{_libdir}/librte_ml_cnxk.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_ml_cnxk.so.%{abi_ver}
+%endif
 %attr(755,root,root) %{_libdir}/librte_net_*.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_net_*.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_raw_*.so.*.*
@@ -356,6 +366,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_ethdev.so
 %attr(755,root,root) %{_libdir}/librte_eventdev.so
 %attr(755,root,root) %{_libdir}/librte_fib.so
+%attr(755,root,root) %{_libdir}/librte_flow_classify.so
 %attr(755,root,root) %{_libdir}/librte_gpudev.so
 %attr(755,root,root) %{_libdir}/librte_graph.so
 %attr(755,root,root) %{_libdir}/librte_gro.so
@@ -406,6 +417,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_dma_*.so
 %attr(755,root,root) %{_libdir}/librte_event_*.so
 %attr(755,root,root) %{_libdir}/librte_mempool_*.so
+%ifarch %{x8664} aarch64 ppc64
+%attr(755,root,root) %{_libdir}/librte_ml_cnxk.so
+%endif
 %attr(755,root,root) %{_libdir}/librte_net_*.so
 %attr(755,root,root) %{_libdir}/librte_raw_*.so
 %attr(755,root,root) %{_libdir}/librte_regex_*.so
@@ -432,6 +446,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_ethdev.a
 %{_libdir}/librte_eventdev.a
 %{_libdir}/librte_fib.a
+%{_libdir}/librte_flow_classify.a
 %{_libdir}/librte_gpudev.a
 %{_libdir}/librte_graph.a
 %{_libdir}/librte_gro.a
@@ -482,6 +497,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_dma_*.a
 %{_libdir}/librte_event_*.a
 %{_libdir}/librte_mempool_*.a
+%ifarch %{x8664} aarch64 ppc64
+%{_libdir}/librte_ml_cnxk.a
+%endif
 %{_libdir}/librte_net_*.a
 %{_libdir}/librte_raw_*.a
 %{_libdir}/librte_regex_*.a
