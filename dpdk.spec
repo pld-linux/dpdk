@@ -36,6 +36,7 @@ Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
 # Source0-md5:	3cf8ebbcd412d5726db230f2eeb90cc9
 Patch0:		%{name}-opt.patch
+Patch1:		%{name}-time.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)
 BuildRequires:	elfutils-devel
@@ -140,6 +141,7 @@ Dokumentacja API bibliotek DPDK.
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %{__sed} -i -e '1s,/usr/bin/env python3,%{__python3},' \
 	usertools/dpdk-{devbind,hugepages,pmdinfo,telemetry}.py \

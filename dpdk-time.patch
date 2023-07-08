@@ -1,0 +1,65 @@
+--- dpdk-23.03/lib/eal/include/rte_trace_point.h.orig	2023-03-31 15:38:06.000000000 +0200
++++ dpdk-23.03/lib/eal/include/rte_trace_point.h	2023-07-08 12:24:27.334779583 +0200
+@@ -429,6 +429,16 @@ do { \
+ #define rte_trace_point_emit_float(in) __rte_trace_point_emit(in, float)
+ #define rte_trace_point_emit_double(in) __rte_trace_point_emit(in, double)
+ #define rte_trace_point_emit_ptr(in) __rte_trace_point_emit(in, uintptr_t)
++#ifdef __USE_TIME_BITS64
++#define rte_trace_point_emit_time(in) __rte_trace_point_emit(in, __time64_t)
++#else
++#define rte_trace_point_emit_time(in) __rte_trace_point_emit(in, time_t)
++#endif
++#if defined(__x86_64__) && defined(__ILP32__)
++#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(in, int64_t)
++#else
++#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(in, long)
++#endif
+ 
+ #endif /* __DOXYGEN__ */
+ 
+--- dpdk-23.03/lib/ethdev/ethdev_trace.h.orig	2023-03-31 15:38:06.000000000 +0200
++++ dpdk-23.03/lib/ethdev/ethdev_trace.h	2023-07-08 12:25:12.775041333 +0200
+@@ -1121,8 +1121,8 @@ RTE_TRACE_POINT(
+ 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *time,
+ 		int ret),
+ 	rte_trace_point_emit_u16(port_id);
+-	rte_trace_point_emit_size_t(time->tv_sec);
+-	rte_trace_point_emit_long(time->tv_nsec);
++	rte_trace_point_emit_time(time->tv_sec);
++	rte_trace_point_emit_nsec(time->tv_nsec);
+ 	rte_trace_point_emit_int(ret);
+ )
+ 
+@@ -2159,8 +2159,8 @@ RTE_TRACE_POINT_FP(
+ 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *timestamp,
+ 		uint32_t flags, int ret),
+ 	rte_trace_point_emit_u16(port_id);
+-	rte_trace_point_emit_size_t(timestamp->tv_sec);
+-	rte_trace_point_emit_long(timestamp->tv_nsec);
++	rte_trace_point_emit_time(timestamp->tv_sec);
++	rte_trace_point_emit_nsec(timestamp->tv_nsec);
+ 	rte_trace_point_emit_u32(flags);
+ 	rte_trace_point_emit_int(ret);
+ )
+@@ -2171,8 +2171,8 @@ RTE_TRACE_POINT_FP(
+ 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *timestamp,
+ 		int ret),
+ 	rte_trace_point_emit_u16(port_id);
+-	rte_trace_point_emit_size_t(timestamp->tv_sec);
+-	rte_trace_point_emit_long(timestamp->tv_nsec);
++	rte_trace_point_emit_time(timestamp->tv_sec);
++	rte_trace_point_emit_nsec(timestamp->tv_nsec);
+ 	rte_trace_point_emit_int(ret);
+ )
+ 
+@@ -2182,8 +2182,8 @@ RTE_TRACE_POINT_FP(
+ 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *time,
+ 		int ret),
+ 	rte_trace_point_emit_u16(port_id);
+-	rte_trace_point_emit_size_t(time->tv_sec);
+-	rte_trace_point_emit_long(time->tv_nsec);
++	rte_trace_point_emit_time(time->tv_sec);
++	rte_trace_point_emit_nsec(time->tv_nsec);
+ 	rte_trace_point_emit_int(ret);
+ )
+ 
