@@ -29,14 +29,13 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	23.03
+Version:	23.11
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	3cf8ebbcd412d5726db230f2eeb90cc9
-Patch0:		%{name}-opt.patch
-Patch1:		%{name}-time.patch
+# Source0-md5:	896c09f5b45b452bd77287994650b916
+Patch0:		%{name}-time.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)
 BuildRequires:	elfutils-devel
@@ -57,6 +56,8 @@ BuildRequires:	libibverbs-driver-mlx5-devel
 BuildRequires:	libisal-devel
 BuildRequires:	libpcap-devel
 BuildRequires:	libxdp-devel
+# vduse etc.
+BuildRequires:	linux-libc-headers >= 7:5.15
 BuildRequires:	meson >= 0.53.2
 BuildRequires:	ninja >= 1.5
 BuildRequires:	numactl-devel
@@ -81,11 +82,11 @@ ExclusiveArch:	%{ix86} %{x8664} x32 %{arm} aarch64 ppc64
 ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
-%define		abi_ver		23
-%define		lib_ver		%{abi_ver}.1
+%define		abi_ver		24
+%define		lib_ver		%{abi_ver}.0
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
-%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_distributor.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_kni.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
+%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_dispatcher.so.* librte_distributor.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_dmadev.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_kni.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdcp.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
 
 %description
 DPDK is the Data Plane Development Kit that consists of libraries to
@@ -141,10 +142,10 @@ Dokumentacja API bibliotek DPDK.
 %prep
 %setup -q
 %patch0 -p1
-%patch1 -p1
 
 %{__sed} -i -e '1s,/usr/bin/env python3,%{__python3},' \
-	usertools/dpdk-{devbind,hugepages,pmdinfo,telemetry}.py \
+	buildtools/dpdk-cmdline-gen.py \
+	usertools/dpdk-{devbind,hugepages,pmdinfo,rss-flows,telemetry}.py \
 	examples/ipsec-secgw/test/*.py \
 	examples/pipeline/examples/vxlan_table.py
 
@@ -154,7 +155,8 @@ Dokumentacja API bibliotek DPDK.
 	--default-library=shared \
 	--includedir=%{_includedir}/dpdk \
 	-Ddisable_libs=%{!?with_rte_kni:kni} \
-	%{?with_apidocs:-Denable_docs=true}
+	%{?with_apidocs:-Denable_docs=true} \
+	-Dplatform=generic
 
 # TODO: -Denable_kmods=true
 
@@ -174,6 +176,8 @@ install -d $RPM_BUILD_ROOT%{_examplesdir}
 # cleanup
 %{__rm} $RPM_BUILD_ROOT%{_docdir}/dpdk/examples.dox
 %{__rm} -r $RPM_BUILD_ROOT%{_docdir}/dpdk/html/{.doctrees,_sources,.buildinfo,objects.inv}
+# many too common names, package just HTML docs, not man pages
+%{__rm} -r $RPM_BUILD_ROOT%{_mandir}/man3/*.3
 %endif
 
 %clean
@@ -185,12 +189,15 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(644,root,root,755)
 %doc MAINTAINERS README
+%attr(755,root,root) %{_bindir}/dpdk-cmdline-gen.py
 %attr(755,root,root) %{_bindir}/dpdk-devbind.py
 %attr(755,root,root) %{_bindir}/dpdk-dumpcap
+%attr(755,root,root) %{_bindir}/dpdk-graph
 %attr(755,root,root) %{_bindir}/dpdk-hugepages.py
 %attr(755,root,root) %{_bindir}/dpdk-pdump
 %attr(755,root,root) %{_bindir}/dpdk-pmdinfo.py
 %attr(755,root,root) %{_bindir}/dpdk-proc-info
+%attr(755,root,root) %{_bindir}/dpdk-rss-flows.py
 %attr(755,root,root) %{_bindir}/dpdk-telemetry.py
 %attr(755,root,root) %{_libdir}/librte_acl.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_acl.so.%{abi_ver}
@@ -208,6 +215,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_compressdev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_cryptodev.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_cryptodev.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_dispatcher.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_dispatcher.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_distributor.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_distributor.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_dmadev.so.*.*
@@ -222,8 +231,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_eventdev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_fib.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_fib.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_flow_classify.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_flow_classify.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_gpudev.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_gpudev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_graph.so.*.*
@@ -248,6 +255,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_kvargs.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_latencystats.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_latencystats.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_log.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_log.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_lpm.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_lpm.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_mbuf.so.*.*
@@ -270,6 +279,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_pcapng.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_pci.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_pci.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_pdcp.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_pdcp.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_pdump.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_pdump.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_pipeline.so.*.*
@@ -361,6 +372,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_cmdline.so
 %attr(755,root,root) %{_libdir}/librte_compressdev.so
 %attr(755,root,root) %{_libdir}/librte_cryptodev.so
+%attr(755,root,root) %{_libdir}/librte_dispatcher.so
 %attr(755,root,root) %{_libdir}/librte_distributor.so
 %attr(755,root,root) %{_libdir}/librte_dmadev.so
 %attr(755,root,root) %{_libdir}/librte_eal.so
@@ -368,7 +380,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_ethdev.so
 %attr(755,root,root) %{_libdir}/librte_eventdev.so
 %attr(755,root,root) %{_libdir}/librte_fib.so
-%attr(755,root,root) %{_libdir}/librte_flow_classify.so
 %attr(755,root,root) %{_libdir}/librte_gpudev.so
 %attr(755,root,root) %{_libdir}/librte_graph.so
 %attr(755,root,root) %{_libdir}/librte_gro.so
@@ -382,6 +393,7 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 %attr(755,root,root) %{_libdir}/librte_kvargs.so
 %attr(755,root,root) %{_libdir}/librte_latencystats.so
+%attr(755,root,root) %{_libdir}/librte_log.so
 %attr(755,root,root) %{_libdir}/librte_lpm.so
 %attr(755,root,root) %{_libdir}/librte_mbuf.so
 %attr(755,root,root) %{_libdir}/librte_member.so
@@ -393,6 +405,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_node.so
 %attr(755,root,root) %{_libdir}/librte_pcapng.so
 %attr(755,root,root) %{_libdir}/librte_pci.so
+%attr(755,root,root) %{_libdir}/librte_pdcp.so
 %attr(755,root,root) %{_libdir}/librte_pdump.so
 %attr(755,root,root) %{_libdir}/librte_pipeline.so
 %attr(755,root,root) %{_libdir}/librte_port.so
@@ -441,6 +454,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_cmdline.a
 %{_libdir}/librte_compressdev.a
 %{_libdir}/librte_cryptodev.a
+%{_libdir}/librte_dispatcher.a
 %{_libdir}/librte_distributor.a
 %{_libdir}/librte_dmadev.a
 %{_libdir}/librte_eal.a
@@ -448,7 +462,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_ethdev.a
 %{_libdir}/librte_eventdev.a
 %{_libdir}/librte_fib.a
-%{_libdir}/librte_flow_classify.a
 %{_libdir}/librte_gpudev.a
 %{_libdir}/librte_graph.a
 %{_libdir}/librte_gro.a
@@ -462,6 +475,7 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 %{_libdir}/librte_kvargs.a
 %{_libdir}/librte_latencystats.a
+%{_libdir}/librte_log.a
 %{_libdir}/librte_lpm.a
 %{_libdir}/librte_mbuf.a
 %{_libdir}/librte_member.a
@@ -473,6 +487,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_node.a
 %{_libdir}/librte_pcapng.a
 %{_libdir}/librte_pci.a
+%{_libdir}/librte_pdcp.a
 %{_libdir}/librte_pdump.a
 %{_libdir}/librte_pipeline.a
 %{_libdir}/librte_port.a
