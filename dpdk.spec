@@ -1,5 +1,5 @@
 # TODO:
-# - kernel part (igb_uio and kni modules)
+# - kernel part (igb_uio module)
 # - flexran_sdk for drivers/baseband/turbo_sw
 #   (AVX2: libturbo, libcrc, librate_matching, libcommon, libstdc++, libirc, libimf, libipps, libsvml;
 #    AVX512: libldpc_encoder_5gnr, libldpc_decoder_5gnr, libLDPC_ratematch_5gnr, librate_dematching_5gnr)
@@ -21,11 +21,7 @@
 #
 # Conditional build:
 %bcond_without	apidocs		# API documentation
-%bcond_without	rte_kni		# RTE_KNI library (deprecated)
 
-%ifnarch %{x8664} aarch64 ppc64
-%undefine	with_rte_kni
-%endif
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
@@ -87,7 +83,7 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 %define		lib_ver		%{abi_ver}.0
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
-%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_dispatcher.so.* librte_distributor.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_dmadev.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_kni.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdcp.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
+%define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_dispatcher.so.* librte_distributor.so.* librte_dma_cnxk.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_dmadev.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdcp.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
 
 %description
 DPDK is the Data Plane Development Kit that consists of libraries to
@@ -156,7 +152,6 @@ Dokumentacja API bibliotek DPDK.
 %meson build \
 	--default-library=shared \
 	--includedir=%{_includedir}/dpdk \
-	-Ddisable_libs=%{!?with_rte_kni:kni} \
 	%{?with_apidocs:-Denable_docs=true} \
 	-Dplatform=generic
 
@@ -249,10 +244,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_ipsec.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_jobstats.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_jobstats.so.%{abi_ver}
-%if %{with rte_kni}
-%attr(755,root,root) %{_libdir}/librte_kni.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_kni.so.%{abi_ver}
-%endif
 %attr(755,root,root) %{_libdir}/librte_kvargs.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_kvargs.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_latencystats.so.*.*
@@ -390,9 +381,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_ip_frag.so
 %attr(755,root,root) %{_libdir}/librte_ipsec.so
 %attr(755,root,root) %{_libdir}/librte_jobstats.so
-%if %{with rte_kni}
-%attr(755,root,root) %{_libdir}/librte_kni.so
-%endif
 %attr(755,root,root) %{_libdir}/librte_kvargs.so
 %attr(755,root,root) %{_libdir}/librte_latencystats.so
 %attr(755,root,root) %{_libdir}/librte_log.so
@@ -472,9 +460,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_ip_frag.a
 %{_libdir}/librte_ipsec.a
 %{_libdir}/librte_jobstats.a
-%if %{with rte_kni}
-%{_libdir}/librte_kni.a
-%endif
 %{_libdir}/librte_kvargs.a
 %{_libdir}/librte_latencystats.a
 %{_libdir}/librte_log.a
