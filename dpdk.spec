@@ -36,6 +36,7 @@ Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
 # Source0-md5:	896c09f5b45b452bd77287994650b916
 Patch0:		%{name}-time.patch
+Patch1:		%{name}-no-mandb.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)
 BuildRequires:	elfutils-devel
@@ -142,6 +143,7 @@ Dokumentacja API bibliotek DPDK.
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %{__sed} -i -e '1s,/usr/bin/env python3,%{__python3},' \
 	buildtools/dpdk-cmdline-gen.py \
