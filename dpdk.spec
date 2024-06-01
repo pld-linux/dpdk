@@ -25,12 +25,12 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	23.11
+Version:	24.03
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	896c09f5b45b452bd77287994650b916
+# Source0-md5:	a98da848d6ba09808ef00f9a26aaa49a
 Patch0:		%{name}-time.patch
 Patch1:		%{name}-no-mandb.patch
 URL:		https://www.dpdk.org/
@@ -80,7 +80,7 @@ ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		abi_ver		24
-%define		lib_ver		%{abi_ver}.0
+%define		lib_ver		%{abi_ver}.1
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
 %define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_dispatcher.so.* librte_distributor.so.* librte_dma_cnxk.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_dmadev.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdcp.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
@@ -198,6 +198,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/dpdk-telemetry.py
 %attr(755,root,root) %{_libdir}/librte_acl.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_acl.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_argparse.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_argparse.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_bbdev.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_bbdev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_bitratestats.so.*.*
@@ -358,6 +360,7 @@ rm -rf $RPM_BUILD_ROOT
 %files devel
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_libdir}/librte_acl.so
+%attr(755,root,root) %{_libdir}/librte_argparse.so
 %attr(755,root,root) %{_libdir}/librte_bbdev.so
 %attr(755,root,root) %{_libdir}/librte_bitratestats.so
 %attr(755,root,root) %{_libdir}/librte_bpf.so
@@ -437,6 +440,7 @@ rm -rf $RPM_BUILD_ROOT
 %files static
 %defattr(644,root,root,755)
 %{_libdir}/librte_acl.a
+%{_libdir}/librte_argparse.a
 %{_libdir}/librte_bbdev.a
 %{_libdir}/librte_bitratestats.a
 %{_libdir}/librte_bpf.a
