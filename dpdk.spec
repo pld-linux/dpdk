@@ -25,12 +25,12 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	24.03
+Version:	24.07
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	a98da848d6ba09808ef00f9a26aaa49a
+# Source0-md5:	48151b1bd545cd95447979fa033199bb
 Patch0:		%{name}-time.patch
 Patch1:		%{name}-no-mandb.patch
 URL:		https://www.dpdk.org/
@@ -43,7 +43,7 @@ BuildRequires:	gcc >= 6:4.8.6
 %endif
 BuildRequires:	jansson-devel
 BuildRequires:	libarchive-devel
-BuildRequires:	libbpf-devel
+BuildRequires:	libbpf-devel >= 1.0
 BuildRequires:	libbsd-devel
 BuildRequires:	libfdt-devel
 BuildRequires:	libibverbs-devel
@@ -80,7 +80,7 @@ ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		abi_ver		24
-%define		lib_ver		%{abi_ver}.1
+%define		lib_ver		%{abi_ver}.2
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
 %define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_dispatcher.so.* librte_distributor.so.* librte_dma_cnxk.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_dmadev.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdcp.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
@@ -102,7 +102,15 @@ Group:		Development/Libraries
 Requires:	%{name} = %{version}-%{release}
 Requires:	elfutils-devel
 Requires:	jansson-devel
+Requires:	libarchive-devel
+Requires:	libbpf-devel >= 1.0
 Requires:	libbsd-devel
+Requires:	libibverbs-devel
+Requires:	libibverbs-driver-mana-devel
+Requires:	libibverbs-driver-mlx4-devel
+Requires:	libibverbs-driver-mlx5-devel
+Requires:	libisal-devel
+Requires:	libpcap-devel
 Requires:	openssl-devel
 Requires:	zlib-devel
 
@@ -143,7 +151,7 @@ Dokumentacja API bibliotek DPDK.
 
 %{__sed} -i -e '1s,/usr/bin/env python3,%{__python3},' \
 	buildtools/dpdk-cmdline-gen.py \
-	usertools/dpdk-{devbind,hugepages,pmdinfo,rss-flows,telemetry}.py \
+	usertools/dpdk-{devbind,hugepages,pmdinfo,rss-flows,telemetry,telemetry-exporter}.py \
 	examples/ipsec-secgw/test/*.py \
 	examples/pipeline/examples/vxlan_table.py
 
@@ -188,14 +196,17 @@ rm -rf $RPM_BUILD_ROOT
 %doc MAINTAINERS README
 %attr(755,root,root) %{_bindir}/dpdk-cmdline-gen.py
 %attr(755,root,root) %{_bindir}/dpdk-devbind.py
-%attr(755,root,root) %{_bindir}/dpdk-dumpcap
 %attr(755,root,root) %{_bindir}/dpdk-graph
 %attr(755,root,root) %{_bindir}/dpdk-hugepages.py
-%attr(755,root,root) %{_bindir}/dpdk-pdump
 %attr(755,root,root) %{_bindir}/dpdk-pmdinfo.py
 %attr(755,root,root) %{_bindir}/dpdk-proc-info
 %attr(755,root,root) %{_bindir}/dpdk-rss-flows.py
 %attr(755,root,root) %{_bindir}/dpdk-telemetry.py
+%attr(755,root,root) %{_bindir}/dpdk-telemetry-exporter.py
+%ifarch %{x8664} aarch64
+%attr(755,root,root) %{_bindir}/dpdk-dumpcap
+%attr(755,root,root) %{_bindir}/dpdk-pdump
+%endif
 %attr(755,root,root) %{_libdir}/librte_acl.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_acl.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_argparse.so.*.*
@@ -204,8 +215,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_bbdev.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_bitratestats.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_bitratestats.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_bpf.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_bpf.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_cfgfile.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_cfgfile.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_cmdline.so.*.*
@@ -276,8 +285,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_pci.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_pdcp.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_pdcp.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_pdump.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_pdump.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_pipeline.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_pipeline.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_port.so.*.*
@@ -310,6 +317,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_timer.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_vhost.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_vhost.so.%{abi_ver}
+%ifarch %{x8664} aarch64
+%attr(755,root,root) %{_libdir}/librte_bpf.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_bpf.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_pdump.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_pdump.so.%{abi_ver}
+%endif
 %dir %{_libdir}/dpdk
 %dir %{_libdir}/dpdk/pmds-%{lib_ver}
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_baseband_*.so*
@@ -356,6 +369,8 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %ghost %{_libdir}/librte_regex_*.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_vdpa_*.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_vdpa_*.so.%{abi_ver}
+%dir %{_datadir}/dpdk
+%{_datadir}/dpdk/telemetry-endpoints
 
 %files devel
 %defattr(644,root,root,755)
@@ -363,7 +378,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_argparse.so
 %attr(755,root,root) %{_libdir}/librte_bbdev.so
 %attr(755,root,root) %{_libdir}/librte_bitratestats.so
-%attr(755,root,root) %{_libdir}/librte_bpf.so
 %attr(755,root,root) %{_libdir}/librte_cfgfile.so
 %attr(755,root,root) %{_libdir}/librte_cmdline.so
 %attr(755,root,root) %{_libdir}/librte_compressdev.so
@@ -399,7 +413,6 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_pcapng.so
 %attr(755,root,root) %{_libdir}/librte_pci.so
 %attr(755,root,root) %{_libdir}/librte_pdcp.so
-%attr(755,root,root) %{_libdir}/librte_pdump.so
 %attr(755,root,root) %{_libdir}/librte_pipeline.so
 %attr(755,root,root) %{_libdir}/librte_port.so
 %attr(755,root,root) %{_libdir}/librte_power.so
@@ -416,6 +429,10 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/librte_telemetry.so
 %attr(755,root,root) %{_libdir}/librte_timer.so
 %attr(755,root,root) %{_libdir}/librte_vhost.so
+%ifarch %{x8664} aarch64
+%attr(755,root,root) %{_libdir}/librte_bpf.so
+%attr(755,root,root) %{_libdir}/librte_pdump.so
+%endif
 # symlinks to subdir
 %attr(755,root,root) %{_libdir}/librte_baseband_*.so
 %attr(755,root,root) %{_libdir}/librte_bus_*.so
@@ -443,7 +460,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_argparse.a
 %{_libdir}/librte_bbdev.a
 %{_libdir}/librte_bitratestats.a
-%{_libdir}/librte_bpf.a
 %{_libdir}/librte_cfgfile.a
 %{_libdir}/librte_cmdline.a
 %{_libdir}/librte_compressdev.a
@@ -479,7 +495,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_pcapng.a
 %{_libdir}/librte_pci.a
 %{_libdir}/librte_pdcp.a
-%{_libdir}/librte_pdump.a
 %{_libdir}/librte_pipeline.a
 %{_libdir}/librte_port.a
 %{_libdir}/librte_power.a
@@ -496,6 +511,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_telemetry.a
 %{_libdir}/librte_timer.a
 %{_libdir}/librte_vhost.a
+%ifarch %{x8664} aarch64
+%{_libdir}/librte_bpf.a
+%{_libdir}/librte_pdump.a
+%endif
 # drivers
 %{_libdir}/librte_baseband_*.a
 %{_libdir}/librte_bus_*.a
