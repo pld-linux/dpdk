@@ -4,7 +4,7 @@
  #define rte_trace_point_emit_float(in) __rte_trace_point_emit(in, float)
  #define rte_trace_point_emit_double(in) __rte_trace_point_emit(in, double)
  #define rte_trace_point_emit_ptr(in) __rte_trace_point_emit(in, uintptr_t)
-+#ifdef __USE_TIME_BITS64
++#if defined(__USE_TIME_BITS64) && !defined(__x86_64__)
 +#define rte_trace_point_emit_time(in) __rte_trace_point_emit(in, __time64_t)
 +#else
 +#define rte_trace_point_emit_time(in) __rte_trace_point_emit(in, time_t)
