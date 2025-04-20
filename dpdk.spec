@@ -62,6 +62,7 @@ BuildRequires:	openssl-devel
 BuildRequires:	pkgconfig
 BuildRequires:	python3 >= 3
 BuildRequires:	python3-elftools
+BuildRequires:	rpmbuild(macros) >= 2.042
 BuildRequires:	sed >= 4.0
 BuildRequires:	tar >= 1:1.22
 BuildRequires:	xz
@@ -157,7 +158,7 @@ Dokumentacja API bibliotek DPDK.
 
 %build
 # it builds static libs on its own, --default-libraries=both is not supported
-%meson build \
+%meson \
 	--default-library=shared \
 	--includedir=%{_includedir}/dpdk \
 	%{?with_apidocs:-Denable_docs=true} \
@@ -165,12 +166,12 @@ Dokumentacja API bibliotek DPDK.
 
 # TODO: -Denable_kmods=true
 
-%ninja_build -C build
+%meson_build
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
-%ninja_install -C build
+%meson_install
 
 install -d $RPM_BUILD_ROOT%{_examplesdir}
 %{__mv} $RPM_BUILD_ROOT%{_datadir}/dpdk/examples $RPM_BUILD_ROOT%{_examplesdir}/%{name}-%{version}
