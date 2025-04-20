@@ -146,8 +146,8 @@ Dokumentacja API bibliotek DPDK.
 
 %prep
 %setup -q
-%patch0 -p1
-%patch1 -p1
+%patch -P0 -p1
+%patch -P1 -p1
 
 %{__sed} -i -e '1s,/usr/bin/env python3,%{__python3},' \
 	buildtools/dpdk-cmdline-gen.py \
