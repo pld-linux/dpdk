@@ -1,22 +1,33 @@
---- dpdk-23.03/lib/eal/include/rte_trace_point.h.orig	2023-03-31 15:38:06.000000000 +0200
-+++ dpdk-23.03/lib/eal/include/rte_trace_point.h	2023-07-08 12:24:27.334779583 +0200
-@@ -429,6 +429,16 @@ do { \
- #define rte_trace_point_emit_float(in) __rte_trace_point_emit(in, float)
- #define rte_trace_point_emit_double(in) __rte_trace_point_emit(in, double)
- #define rte_trace_point_emit_ptr(in) __rte_trace_point_emit(in, uintptr_t)
-+#if defined(__USE_TIME_BITS64) && !defined(__x86_64__)
-+#define rte_trace_point_emit_time(in) __rte_trace_point_emit(in, __time64_t)
-+#else
-+#define rte_trace_point_emit_time(in) __rte_trace_point_emit(in, time_t)
-+#endif
-+#if defined(__x86_64__) && defined(__ILP32__)
-+#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(in, int64_t)
-+#else
-+#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(in, long)
-+#endif
+--- dpdk-25.03/lib/eal/include/rte_trace_point.h.orig	2025-03-24 21:09:22.000000000 +0100
++++ dpdk-25.03/lib/eal/include/rte_trace_point.h	2025-04-20 17:31:36.043239081 +0200
+@@ -161,6 +161,9 @@ _tp _args \
+  */
+ #define rte_trace_point_emit_blob(val, len)
  
++#define rte_trace_point_emit_time(val)
++#define rte_trace_point_emit_nsec(val)
++
  #endif /* __DOXYGEN__ */
  
+ /** @internal Macro to define maximum emit length of string datatype. */
+@@ -453,6 +456,17 @@ do { \
+ #define rte_trace_point_emit_float_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, float)
+ #define rte_trace_point_emit_double_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, double)
+ 
++#if defined(__USE_TIME_BITS64) && !defined(__x86_64__)
++#define rte_trace_point_emit_time(in) __rte_trace_point_emit(RTE_STR(in), &in, __time64_t)
++#else
++#define rte_trace_point_emit_time(in) __rte_trace_point_emit(RTE_STR(in), &in, time_t)
++#endif
++#if defined(__x86_64__) && defined(__ILP32__)
++#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(RTE_STR(in), &in, int64_t)
++#else
++#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(RTE_STR(in), &in, long)
++#endif
++
+ #endif /* __DOXYGEN__ */
+ 
+ #ifdef __cplusplus
 --- dpdk-23.03/lib/ethdev/ethdev_trace.h.orig	2023-03-31 15:38:06.000000000 +0200
 +++ dpdk-23.03/lib/ethdev/ethdev_trace.h	2023-07-08 12:25:12.775041333 +0200
 @@ -1121,8 +1121,8 @@ RTE_TRACE_POINT(

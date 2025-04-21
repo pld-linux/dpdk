@@ -1,5 +1,6 @@
 # TODO:
 # - kernel part (igb_uio module)
+# - dlpack <https://github.com/dmlc/dlpack>, dlmc-core <https://github.com/dmlc/dmlc-core>, Apache TVM >= 0.10.0 <https://github.com/apache/tvm>, tvmdp <https://github.com/MarvellEmbeddedProcessors/tvmdp> for drivers/ml/cnxk
 # - flexran_sdk for drivers/baseband/turbo_sw
 #   (AVX2: libturbo, libcrc, librate_matching, libcommon, libstdc++, libirc, libimf, libipps, libsvml;
 #    AVX512: libldpc_encoder_5gnr, libldpc_decoder_5gnr, libLDPC_ratematch_5gnr, librate_dematching_5gnr)
@@ -15,8 +16,6 @@
 # - cuda for drivers/gpu/cuda
 # - pkgconfig(netcope-common) for driver/net/nfb
 #   https://www.netcope.com/en/company/community-support/dpdk-libsze2 or https://www.liberouter.org/repo/dcpro/base/ - x86_64 only
-# - pkgconfig(libsze2) for drivers/net/szedata2
-#   https://www.netcope.com/en/company/community-support/dpdk-libsze2 - x86_64 only
 #   some old versions at https://homeproj.cesnet.cz/rpm/liberouter/{devel,stable}/SRPMS/
 #
 # Conditional build:
@@ -25,12 +24,12 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	24.07
+Version:	25.03
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	48151b1bd545cd95447979fa033199bb
+# Source0-md5:	da3ecf3461bd2b1fef5874cd4cbca163
 Patch0:		%{name}-time.patch
 Patch1:		%{name}-no-mandb.patch
 URL:		https://www.dpdk.org/
@@ -42,6 +41,8 @@ BuildRequires:	gcc >= 6:4.7
 BuildRequires:	gcc >= 6:4.8.6
 %endif
 BuildRequires:	jansson-devel
+# bpftool
+BuildRequires:	kernel-tools
 BuildRequires:	libarchive-devel
 BuildRequires:	libbpf-devel >= 1.0
 BuildRequires:	libbsd-devel
@@ -52,10 +53,12 @@ BuildRequires:	libibverbs-driver-mlx4-devel
 BuildRequires:	libibverbs-driver-mlx5-devel
 BuildRequires:	libisal-devel
 BuildRequires:	libpcap-devel
-BuildRequires:	libxdp-devel
+BuildRequires:	libxdp-devel >= 1.2.2
 # vduse etc.
 BuildRequires:	linux-libc-headers >= 7:5.15
 BuildRequires:	meson >= 0.53.2
+# libmtcl_ul for mlx5
+BuildRequires:	mstflint-devel >= 4.31
 BuildRequires:	ninja >= 1.5
 BuildRequires:	numactl-devel
 BuildRequires:	openssl-devel
@@ -80,8 +83,8 @@ ExclusiveArch:	%{ix86} %{x8664} x32 %{arm} aarch64 ppc64
 ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
-%define		abi_ver		24
-%define		lib_ver		%{abi_ver}.2
+%define		abi_ver		25
+%define		lib_ver		%{abi_ver}.1
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
 %define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_dispatcher.so.* librte_distributor.so.* librte_dma_cnxk.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_dmadev.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdcp.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
@@ -338,6 +341,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_ml_cnxk.so*
 %endif
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_net_*.so*
+%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_power_*.so*
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_raw_*.so*
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_regex_*.so*
 %attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_vdpa_*.so*
@@ -364,6 +368,8 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 %attr(755,root,root) %{_libdir}/librte_net_*.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_net_*.so.%{abi_ver}
+%attr(755,root,root) %{_libdir}/librte_power_*.so.*.*
+%attr(755,root,root) %ghost %{_libdir}/librte_power_*.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_raw_*.so.*.*
 %attr(755,root,root) %ghost %{_libdir}/librte_raw_*.so.%{abi_ver}
 %attr(755,root,root) %{_libdir}/librte_regex_*.so.*.*
@@ -448,6 +454,7 @@ rm -rf $RPM_BUILD_ROOT
 %endif
 %attr(755,root,root) %{_libdir}/librte_net_*.so
 %attr(755,root,root) %{_libdir}/librte_raw_*.so
+%attr(755,root,root) %{_libdir}/librte_power_*.so
 %attr(755,root,root) %{_libdir}/librte_regex_*.so
 %attr(755,root,root) %{_libdir}/librte_vdpa_*.so
 %{_includedir}/dpdk
@@ -499,6 +506,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_pipeline.a
 %{_libdir}/librte_port.a
 %{_libdir}/librte_power.a
+%{_libdir}/librte_power_acpi.a
+%{_libdir}/librte_power_amd_pstate.a
+%{_libdir}/librte_power_cppc.a
+%{_libdir}/librte_power_intel_pstate.a
+%{_libdir}/librte_power_intel_uncore.a
+%{_libdir}/librte_power_kvm_vm.a
 %{_libdir}/librte_rawdev.a
 %{_libdir}/librte_rcu.a
 %{_libdir}/librte_regexdev.a
