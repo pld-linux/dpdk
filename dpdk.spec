@@ -12,11 +12,14 @@
 # - libAArch64crypto for drivers/crypto/armv8
 #   https://github.com/ARM-software/AArch64cryptolib (aarch64)
 # - pkgconfig(libwd), pkgconfig(libwd_crypto) for drivers/crypto/uadk
+# + pkgconfig(libwd), pkgconfig(libwd_comp) for drivers/compress/uadk
 #   https://github.com/Linaro/uadk
 # - cuda for drivers/gpu/cuda
 # - pkgconfig(netcope-common) for driver/net/nfb
 #   https://www.netcope.com/en/company/community-support/dpdk-libsze2 or https://www.liberouter.org/repo/dcpro/base/ - x86_64 only
 #   some old versions at https://homeproj.cesnet.cz/rpm/liberouter/{devel,stable}/SRPMS/
+# - libe_smi (<e_smi/e_smi.h>, libe_smi64) for drivers/power/amd_uncore
+#   https://github.com/amd/esmi_ib_library
 #
 # Conditional build:
 %bcond_without	apidocs		# API documentation
@@ -24,12 +27,12 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	25.03
+Version:	26.03
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	da3ecf3461bd2b1fef5874cd4cbca163
+# Source0-md5:	5ef5da0574619860b77871a822e6a6dd
 Patch0:		%{name}-time.patch
 Patch1:		%{name}-no-mandb.patch
 URL:		https://www.dpdk.org/
@@ -56,7 +59,7 @@ BuildRequires:	libpcap-devel
 BuildRequires:	libxdp-devel >= 1.2.2
 # vduse etc.
 BuildRequires:	linux-libc-headers >= 7:5.15
-BuildRequires:	meson >= 0.53.2
+BuildRequires:	meson >= 0.57.2
 # libmtcl_ul for mlx5
 BuildRequires:	mstflint-devel >= 4.31
 BuildRequires:	ninja >= 1.5
@@ -68,6 +71,7 @@ BuildRequires:	python3-elftools
 BuildRequires:	rpmbuild(macros) >= 2.042
 BuildRequires:	sed >= 4.0
 BuildRequires:	tar >= 1:1.22
+BuildRequires:	xxd
 BuildRequires:	xz
 BuildRequires:	zlib-devel
 %if %{with apidocs}
@@ -83,7 +87,7 @@ ExclusiveArch:	%{ix86} %{x8664} x32 %{arm} aarch64 ppc64
 ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
-%define		abi_ver		25
+%define		abi_ver		26
 %define		lib_ver		%{abi_ver}.1
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
@@ -160,10 +164,25 @@ Dokumentacja API bibliotek DPDK.
 	examples/pipeline/examples/vxlan_table.py
 
 %build
-# it builds static libs on its own, --default-libraries=both is not supported
+# It builds static libs on its own, --default-libraries=both is not supported.
+# Instruction set:
+# * -Dplatform=native means building with "-march=native"
+# * -Dcpu_instruction_set=native means the same
+# * -Dcpu_instruction_set=generic means some modern subset (26.03: -march=corei7 for x86, armv7-a for arm, -mcpu=power8 for ppc, rv64gc for riscv)
+# Try to guess instruction set from rpm CFLAGS
+%ifarch ppc ppc64
+arch=$(echo "%{rpmcflags}" | sed -ne 's/.*-mcpu=\([-0-9a-z_]\+\).*/\1/p')
+%else
+arch=$(echo "%{rpmcflags}" | sed -ne 's/.*-march=\([-0-9a-z_]\+\).*/\1/p')
+%endif
+if [ -z "$arch" ]; then
+	arch=generic
+fi
 %meson \
 	--default-library=shared \
 	--includedir=%{_includedir}/dpdk \
+	-Dcpu_instruction_set=$arch \
+	-Ddeveloper_mode=disabled \
 	%{?with_apidocs:-Denable_docs=true} \
 	-Dplatform=generic
 
@@ -183,8 +202,8 @@ install -d $RPM_BUILD_ROOT%{_examplesdir}
 
 %if %{with apidocs}
 # cleanup
-%{__rm} $RPM_BUILD_ROOT%{_docdir}/dpdk/examples.dox
-%{__rm} -r $RPM_BUILD_ROOT%{_docdir}/dpdk/html/{.doctrees,_sources,.buildinfo,objects.inv}
+%{__rm} $RPM_BUILD_ROOT%{_docdir}/dpdk/api/examples.dox
+%{__rm} -r $RPM_BUILD_ROOT%{_docdir}/dpdk/guides/html/{.doctrees,_sources,.buildinfo,objects.inv}
 # many too common names, package just HTML docs, not man pages
 %{__rm} -r $RPM_BUILD_ROOT%{_mandir}/man3/*.3
 %endif
@@ -211,252 +230,255 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/dpdk-dumpcap
 %attr(755,root,root) %{_bindir}/dpdk-pdump
 %endif
-%attr(755,root,root) %{_libdir}/librte_acl.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_acl.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_argparse.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_argparse.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_bbdev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_bbdev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_bitratestats.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_bitratestats.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_cfgfile.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_cfgfile.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_cmdline.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_cmdline.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_compressdev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_compressdev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_cryptodev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_cryptodev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_dispatcher.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_dispatcher.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_distributor.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_distributor.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_dmadev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_dmadev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_eal.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_eal.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_efd.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_efd.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_ethdev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_ethdev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_eventdev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_eventdev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_fib.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_fib.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_gpudev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_gpudev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_graph.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_graph.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_gro.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_gro.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_gso.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_gso.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_hash.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_hash.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_ip_frag.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_ip_frag.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_ipsec.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_ipsec.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_jobstats.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_jobstats.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_kvargs.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_kvargs.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_latencystats.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_latencystats.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_log.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_log.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_lpm.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_lpm.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_mbuf.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_mbuf.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_member.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_member.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_mempool.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_mempool.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_meter.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_meter.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_metrics.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_metrics.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_mldev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_mldev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_net.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_net.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_node.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_node.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_pcapng.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_pcapng.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_pci.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_pci.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_pdcp.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_pdcp.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_pipeline.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_pipeline.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_port.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_port.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_power.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_power.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_rawdev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_rawdev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_rcu.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_rcu.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_regexdev.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_regexdev.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_reorder.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_reorder.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_rib.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_rib.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_ring.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_ring.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_sched.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_sched.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_security.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_security.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_stack.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_stack.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_table.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_table.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_telemetry.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_telemetry.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_timer.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_timer.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_vhost.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_vhost.so.%{abi_ver}
+%{_libdir}/librte_acl.so.*.*
+%ghost %{_libdir}/librte_acl.so.%{abi_ver}
+%{_libdir}/librte_argparse.so.*.*
+%ghost %{_libdir}/librte_argparse.so.%{abi_ver}
+%{_libdir}/librte_bbdev.so.*.*
+%ghost %{_libdir}/librte_bbdev.so.%{abi_ver}
+%{_libdir}/librte_bitratestats.so.*.*
+%ghost %{_libdir}/librte_bitratestats.so.%{abi_ver}
+%{_libdir}/librte_cfgfile.so.*.*
+%ghost %{_libdir}/librte_cfgfile.so.%{abi_ver}
+%{_libdir}/librte_cmdline.so.*.*
+%ghost %{_libdir}/librte_cmdline.so.%{abi_ver}
+%{_libdir}/librte_compressdev.so.*.*
+%ghost %{_libdir}/librte_compressdev.so.%{abi_ver}
+%{_libdir}/librte_cryptodev.so.*.*
+%ghost %{_libdir}/librte_cryptodev.so.%{abi_ver}
+%{_libdir}/librte_dispatcher.so.*.*
+%ghost %{_libdir}/librte_dispatcher.so.%{abi_ver}
+%{_libdir}/librte_distributor.so.*.*
+%ghost %{_libdir}/librte_distributor.so.%{abi_ver}
+%{_libdir}/librte_dmadev.so.*.*
+%ghost %{_libdir}/librte_dmadev.so.%{abi_ver}
+%{_libdir}/librte_eal.so.*.*
+%ghost %{_libdir}/librte_eal.so.%{abi_ver}
+%{_libdir}/librte_efd.so.*.*
+%ghost %{_libdir}/librte_efd.so.%{abi_ver}
+%{_libdir}/librte_ethdev.so.*.*
+%ghost %{_libdir}/librte_ethdev.so.%{abi_ver}
+%{_libdir}/librte_eventdev.so.*.*
+%ghost %{_libdir}/librte_eventdev.so.%{abi_ver}
+%{_libdir}/librte_fib.so.*.*
+%ghost %{_libdir}/librte_fib.so.%{abi_ver}
+%{_libdir}/librte_gpudev.so.*.*
+%ghost %{_libdir}/librte_gpudev.so.%{abi_ver}
+%{_libdir}/librte_graph.so.*.*
+%ghost %{_libdir}/librte_graph.so.%{abi_ver}
+%{_libdir}/librte_gro.so.*.*
+%ghost %{_libdir}/librte_gro.so.%{abi_ver}
+%{_libdir}/librte_gso.so.*.*
+%ghost %{_libdir}/librte_gso.so.%{abi_ver}
+%{_libdir}/librte_hash.so.*.*
+%ghost %{_libdir}/librte_hash.so.%{abi_ver}
+%{_libdir}/librte_ip_frag.so.*.*
+%ghost %{_libdir}/librte_ip_frag.so.%{abi_ver}
+%{_libdir}/librte_ipsec.so.*.*
+%ghost %{_libdir}/librte_ipsec.so.%{abi_ver}
+%{_libdir}/librte_jobstats.so.*.*
+%ghost %{_libdir}/librte_jobstats.so.%{abi_ver}
+%{_libdir}/librte_kvargs.so.*.*
+%ghost %{_libdir}/librte_kvargs.so.%{abi_ver}
+%{_libdir}/librte_latencystats.so.*.*
+%ghost %{_libdir}/librte_latencystats.so.%{abi_ver}
+%{_libdir}/librte_log.so.*.*
+%ghost %{_libdir}/librte_log.so.%{abi_ver}
+%{_libdir}/librte_lpm.so.*.*
+%ghost %{_libdir}/librte_lpm.so.%{abi_ver}
+%{_libdir}/librte_mbuf.so.*.*
+%ghost %{_libdir}/librte_mbuf.so.%{abi_ver}
+%{_libdir}/librte_member.so.*.*
+%ghost %{_libdir}/librte_member.so.%{abi_ver}
+%{_libdir}/librte_mempool.so.*.*
+%ghost %{_libdir}/librte_mempool.so.%{abi_ver}
+%{_libdir}/librte_meter.so.*.*
+%ghost %{_libdir}/librte_meter.so.%{abi_ver}
+%{_libdir}/librte_metrics.so.*.*
+%ghost %{_libdir}/librte_metrics.so.%{abi_ver}
+%{_libdir}/librte_mldev.so.*.*
+%ghost %{_libdir}/librte_mldev.so.%{abi_ver}
+%{_libdir}/librte_net.so.*.*
+%ghost %{_libdir}/librte_net.so.%{abi_ver}
+%{_libdir}/librte_node.so.*.*
+%ghost %{_libdir}/librte_node.so.%{abi_ver}
+%{_libdir}/librte_pcapng.so.*.*
+%ghost %{_libdir}/librte_pcapng.so.%{abi_ver}
+%{_libdir}/librte_pci.so.*.*
+%ghost %{_libdir}/librte_pci.so.%{abi_ver}
+%{_libdir}/librte_pdcp.so.*.*
+%ghost %{_libdir}/librte_pdcp.so.%{abi_ver}
+%{_libdir}/librte_pipeline.so.*.*
+%ghost %{_libdir}/librte_pipeline.so.%{abi_ver}
+%{_libdir}/librte_pmu.so.*.*
+%ghost %{_libdir}/librte_pmu.so.%{abi_ver}
+%{_libdir}/librte_port.so.*.*
+%ghost %{_libdir}/librte_port.so.%{abi_ver}
+%{_libdir}/librte_power.so.*.*
+%ghost %{_libdir}/librte_power.so.%{abi_ver}
+%{_libdir}/librte_rawdev.so.*.*
+%ghost %{_libdir}/librte_rawdev.so.%{abi_ver}
+%{_libdir}/librte_rcu.so.*.*
+%ghost %{_libdir}/librte_rcu.so.%{abi_ver}
+%{_libdir}/librte_regexdev.so.*.*
+%ghost %{_libdir}/librte_regexdev.so.%{abi_ver}
+%{_libdir}/librte_reorder.so.*.*
+%ghost %{_libdir}/librte_reorder.so.%{abi_ver}
+%{_libdir}/librte_rib.so.*.*
+%ghost %{_libdir}/librte_rib.so.%{abi_ver}
+%{_libdir}/librte_ring.so.*.*
+%ghost %{_libdir}/librte_ring.so.%{abi_ver}
+%{_libdir}/librte_sched.so.*.*
+%ghost %{_libdir}/librte_sched.so.%{abi_ver}
+%{_libdir}/librte_security.so.*.*
+%ghost %{_libdir}/librte_security.so.%{abi_ver}
+%{_libdir}/librte_stack.so.*.*
+%ghost %{_libdir}/librte_stack.so.%{abi_ver}
+%{_libdir}/librte_table.so.*.*
+%ghost %{_libdir}/librte_table.so.%{abi_ver}
+%{_libdir}/librte_telemetry.so.*.*
+%ghost %{_libdir}/librte_telemetry.so.%{abi_ver}
+%{_libdir}/librte_timer.so.*.*
+%ghost %{_libdir}/librte_timer.so.%{abi_ver}
+%{_libdir}/librte_vhost.so.*.*
+%ghost %{_libdir}/librte_vhost.so.%{abi_ver}
 %ifarch %{x8664} aarch64
-%attr(755,root,root) %{_libdir}/librte_bpf.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_bpf.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_pdump.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_pdump.so.%{abi_ver}
+%{_libdir}/librte_bpf.so.*.*
+%ghost %{_libdir}/librte_bpf.so.%{abi_ver}
+%{_libdir}/librte_pdump.so.*.*
+%ghost %{_libdir}/librte_pdump.so.%{abi_ver}
 %endif
 %dir %{_libdir}/dpdk
 %dir %{_libdir}/dpdk/pmds-%{lib_ver}
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_baseband_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_bus_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_common_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_compress_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_crypto_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_dma_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_event_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_mempool_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_baseband_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_bus_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_common_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_compress_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_crypto_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_dma_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_event_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_mempool_*.so*
 %ifarch %{x8664} aarch64 ppc64
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_ml_cnxk.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_ml_cnxk.so*
 %endif
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_net_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_power_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_raw_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_regex_*.so*
-%attr(755,root,root) %{_libdir}/dpdk/pmds-%{lib_ver}/librte_vdpa_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_net_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_power_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_raw_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_regex_*.so*
+%{_libdir}/dpdk/pmds-%{lib_ver}/librte_vdpa_*.so*
 # symlinks
-%attr(755,root,root) %{_libdir}/librte_baseband_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_baseband_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_bus_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_bus_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_common_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_common_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_compress_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_compress_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_crypto_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_crypto_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_dma_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_dma_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_event_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_event_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_mempool_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_mempool_*.so.%{abi_ver}
+%{_libdir}/librte_baseband_*.so.*.*
+%ghost %{_libdir}/librte_baseband_*.so.%{abi_ver}
+%{_libdir}/librte_bus_*.so.*.*
+%ghost %{_libdir}/librte_bus_*.so.%{abi_ver}
+%{_libdir}/librte_common_*.so.*.*
+%ghost %{_libdir}/librte_common_*.so.%{abi_ver}
+%{_libdir}/librte_compress_*.so.*.*
+%ghost %{_libdir}/librte_compress_*.so.%{abi_ver}
+%{_libdir}/librte_crypto_*.so.*.*
+%ghost %{_libdir}/librte_crypto_*.so.%{abi_ver}
+%{_libdir}/librte_dma_*.so.*.*
+%ghost %{_libdir}/librte_dma_*.so.%{abi_ver}
+%{_libdir}/librte_event_*.so.*.*
+%ghost %{_libdir}/librte_event_*.so.%{abi_ver}
+%{_libdir}/librte_mempool_*.so.*.*
+%ghost %{_libdir}/librte_mempool_*.so.%{abi_ver}
 %ifarch %{x8664} aarch64 ppc64
-%attr(755,root,root) %{_libdir}/librte_ml_cnxk.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_ml_cnxk.so.%{abi_ver}
+%{_libdir}/librte_ml_cnxk.so.*.*
+%ghost %{_libdir}/librte_ml_cnxk.so.%{abi_ver}
 %endif
-%attr(755,root,root) %{_libdir}/librte_net_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_net_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_power_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_power_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_raw_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_raw_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_regex_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_regex_*.so.%{abi_ver}
-%attr(755,root,root) %{_libdir}/librte_vdpa_*.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/librte_vdpa_*.so.%{abi_ver}
+%{_libdir}/librte_net_*.so.*.*
+%ghost %{_libdir}/librte_net_*.so.%{abi_ver}
+%{_libdir}/librte_power_*.so.*.*
+%ghost %{_libdir}/librte_power_*.so.%{abi_ver}
+%{_libdir}/librte_raw_*.so.*.*
+%ghost %{_libdir}/librte_raw_*.so.%{abi_ver}
+%{_libdir}/librte_regex_*.so.*.*
+%ghost %{_libdir}/librte_regex_*.so.%{abi_ver}
+%{_libdir}/librte_vdpa_*.so.*.*
+%ghost %{_libdir}/librte_vdpa_*.so.%{abi_ver}
 %dir %{_datadir}/dpdk
 %{_datadir}/dpdk/telemetry-endpoints
 
 %files devel
 %defattr(644,root,root,755)
-%attr(755,root,root) %{_libdir}/librte_acl.so
-%attr(755,root,root) %{_libdir}/librte_argparse.so
-%attr(755,root,root) %{_libdir}/librte_bbdev.so
-%attr(755,root,root) %{_libdir}/librte_bitratestats.so
-%attr(755,root,root) %{_libdir}/librte_cfgfile.so
-%attr(755,root,root) %{_libdir}/librte_cmdline.so
-%attr(755,root,root) %{_libdir}/librte_compressdev.so
-%attr(755,root,root) %{_libdir}/librte_cryptodev.so
-%attr(755,root,root) %{_libdir}/librte_dispatcher.so
-%attr(755,root,root) %{_libdir}/librte_distributor.so
-%attr(755,root,root) %{_libdir}/librte_dmadev.so
-%attr(755,root,root) %{_libdir}/librte_eal.so
-%attr(755,root,root) %{_libdir}/librte_efd.so
-%attr(755,root,root) %{_libdir}/librte_ethdev.so
-%attr(755,root,root) %{_libdir}/librte_eventdev.so
-%attr(755,root,root) %{_libdir}/librte_fib.so
-%attr(755,root,root) %{_libdir}/librte_gpudev.so
-%attr(755,root,root) %{_libdir}/librte_graph.so
-%attr(755,root,root) %{_libdir}/librte_gro.so
-%attr(755,root,root) %{_libdir}/librte_gso.so
-%attr(755,root,root) %{_libdir}/librte_hash.so
-%attr(755,root,root) %{_libdir}/librte_ip_frag.so
-%attr(755,root,root) %{_libdir}/librte_ipsec.so
-%attr(755,root,root) %{_libdir}/librte_jobstats.so
-%attr(755,root,root) %{_libdir}/librte_kvargs.so
-%attr(755,root,root) %{_libdir}/librte_latencystats.so
-%attr(755,root,root) %{_libdir}/librte_log.so
-%attr(755,root,root) %{_libdir}/librte_lpm.so
-%attr(755,root,root) %{_libdir}/librte_mbuf.so
-%attr(755,root,root) %{_libdir}/librte_member.so
-%attr(755,root,root) %{_libdir}/librte_mempool.so
-%attr(755,root,root) %{_libdir}/librte_meter.so
-%attr(755,root,root) %{_libdir}/librte_metrics.so
-%attr(755,root,root) %{_libdir}/librte_mldev.so
-%attr(755,root,root) %{_libdir}/librte_net.so
-%attr(755,root,root) %{_libdir}/librte_node.so
-%attr(755,root,root) %{_libdir}/librte_pcapng.so
-%attr(755,root,root) %{_libdir}/librte_pci.so
-%attr(755,root,root) %{_libdir}/librte_pdcp.so
-%attr(755,root,root) %{_libdir}/librte_pipeline.so
-%attr(755,root,root) %{_libdir}/librte_port.so
-%attr(755,root,root) %{_libdir}/librte_power.so
-%attr(755,root,root) %{_libdir}/librte_rawdev.so
-%attr(755,root,root) %{_libdir}/librte_rcu.so
-%attr(755,root,root) %{_libdir}/librte_regexdev.so
-%attr(755,root,root) %{_libdir}/librte_reorder.so
-%attr(755,root,root) %{_libdir}/librte_rib.so
-%attr(755,root,root) %{_libdir}/librte_ring.so
-%attr(755,root,root) %{_libdir}/librte_sched.so
-%attr(755,root,root) %{_libdir}/librte_security.so
-%attr(755,root,root) %{_libdir}/librte_stack.so
-%attr(755,root,root) %{_libdir}/librte_table.so
-%attr(755,root,root) %{_libdir}/librte_telemetry.so
-%attr(755,root,root) %{_libdir}/librte_timer.so
-%attr(755,root,root) %{_libdir}/librte_vhost.so
+%{_libdir}/librte_acl.so
+%{_libdir}/librte_argparse.so
+%{_libdir}/librte_bbdev.so
+%{_libdir}/librte_bitratestats.so
+%{_libdir}/librte_cfgfile.so
+%{_libdir}/librte_cmdline.so
+%{_libdir}/librte_compressdev.so
+%{_libdir}/librte_cryptodev.so
+%{_libdir}/librte_dispatcher.so
+%{_libdir}/librte_distributor.so
+%{_libdir}/librte_dmadev.so
+%{_libdir}/librte_eal.so
+%{_libdir}/librte_efd.so
+%{_libdir}/librte_ethdev.so
+%{_libdir}/librte_eventdev.so
+%{_libdir}/librte_fib.so
+%{_libdir}/librte_gpudev.so
+%{_libdir}/librte_graph.so
+%{_libdir}/librte_gro.so
+%{_libdir}/librte_gso.so
+%{_libdir}/librte_hash.so
+%{_libdir}/librte_ip_frag.so
+%{_libdir}/librte_ipsec.so
+%{_libdir}/librte_jobstats.so
+%{_libdir}/librte_kvargs.so
+%{_libdir}/librte_latencystats.so
+%{_libdir}/librte_log.so
+%{_libdir}/librte_lpm.so
+%{_libdir}/librte_mbuf.so
+%{_libdir}/librte_member.so
+%{_libdir}/librte_mempool.so
+%{_libdir}/librte_meter.so
+%{_libdir}/librte_metrics.so
+%{_libdir}/librte_mldev.so
+%{_libdir}/librte_net.so
+%{_libdir}/librte_node.so
+%{_libdir}/librte_pcapng.so
+%{_libdir}/librte_pci.so
+%{_libdir}/librte_pdcp.so
+%{_libdir}/librte_pipeline.so
+%{_libdir}/librte_pmu.so
+%{_libdir}/librte_port.so
+%{_libdir}/librte_power.so
+%{_libdir}/librte_rawdev.so
+%{_libdir}/librte_rcu.so
+%{_libdir}/librte_regexdev.so
+%{_libdir}/librte_reorder.so
+%{_libdir}/librte_rib.so
+%{_libdir}/librte_ring.so
+%{_libdir}/librte_sched.so
+%{_libdir}/librte_security.so
+%{_libdir}/librte_stack.so
+%{_libdir}/librte_table.so
+%{_libdir}/librte_telemetry.so
+%{_libdir}/librte_timer.so
+%{_libdir}/librte_vhost.so
 %ifarch %{x8664} aarch64
-%attr(755,root,root) %{_libdir}/librte_bpf.so
-%attr(755,root,root) %{_libdir}/librte_pdump.so
+%{_libdir}/librte_bpf.so
+%{_libdir}/librte_pdump.so
 %endif
 # symlinks to subdir
-%attr(755,root,root) %{_libdir}/librte_baseband_*.so
-%attr(755,root,root) %{_libdir}/librte_bus_*.so
-%attr(755,root,root) %{_libdir}/librte_common_*.so
-%attr(755,root,root) %{_libdir}/librte_compress_*.so
-%attr(755,root,root) %{_libdir}/librte_crypto_*.so
-%attr(755,root,root) %{_libdir}/librte_dma_*.so
-%attr(755,root,root) %{_libdir}/librte_event_*.so
-%attr(755,root,root) %{_libdir}/librte_mempool_*.so
+%{_libdir}/librte_baseband_*.so
+%{_libdir}/librte_bus_*.so
+%{_libdir}/librte_common_*.so
+%{_libdir}/librte_compress_*.so
+%{_libdir}/librte_crypto_*.so
+%{_libdir}/librte_dma_*.so
+%{_libdir}/librte_event_*.so
+%{_libdir}/librte_mempool_*.so
 %ifarch %{x8664} aarch64 ppc64
-%attr(755,root,root) %{_libdir}/librte_ml_cnxk.so
+%{_libdir}/librte_ml_cnxk.so
 %endif
-%attr(755,root,root) %{_libdir}/librte_net_*.so
-%attr(755,root,root) %{_libdir}/librte_raw_*.so
-%attr(755,root,root) %{_libdir}/librte_power_*.so
-%attr(755,root,root) %{_libdir}/librte_regex_*.so
-%attr(755,root,root) %{_libdir}/librte_vdpa_*.so
+%{_libdir}/librte_net_*.so
+%{_libdir}/librte_raw_*.so
+%{_libdir}/librte_power_*.so
+%{_libdir}/librte_regex_*.so
+%{_libdir}/librte_vdpa_*.so
 %{_includedir}/dpdk
 %{_pkgconfigdir}/libdpdk.pc
 %{_pkgconfigdir}/libdpdk-libs.pc
@@ -504,6 +526,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_pci.a
 %{_libdir}/librte_pdcp.a
 %{_libdir}/librte_pipeline.a
+%{_libdir}/librte_pmu.a
 %{_libdir}/librte_port.a
 %{_libdir}/librte_power.a
 %{_libdir}/librte_power_acpi.a

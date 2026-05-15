@@ -1,75 +1,71 @@
---- dpdk-25.03/lib/eal/include/rte_trace_point.h.orig	2025-03-24 21:09:22.000000000 +0100
-+++ dpdk-25.03/lib/eal/include/rte_trace_point.h	2025-04-20 17:31:36.043239081 +0200
-@@ -161,6 +161,9 @@ _tp _args \
-  */
- #define rte_trace_point_emit_blob(val, len)
- 
-+#define rte_trace_point_emit_time(val)
+--- dpdk-26.03/lib/eal/include/rte_trace_point.h.orig	2026-03-31 19:42:38.000000000 +0200
++++ dpdk-26.03/lib/eal/include/rte_trace_point.h	2026-05-15 21:21:11.184234888 +0200
+@@ -153,6 +153,7 @@ _tp _args \
+ #define rte_trace_point_emit_string(val)
+ /** Tracepoint function payload for time_t datatype */
+ #define rte_trace_point_emit_time_t(val)
 +#define rte_trace_point_emit_nsec(val)
-+
- #endif /* __DOXYGEN__ */
- 
- /** @internal Macro to define maximum emit length of string datatype. */
-@@ -453,6 +456,17 @@ do { \
- #define rte_trace_point_emit_float_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, float)
- #define rte_trace_point_emit_double_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, double)
- 
-+#if defined(__USE_TIME_BITS64) && !defined(__x86_64__)
-+#define rte_trace_point_emit_time(in) __rte_trace_point_emit(RTE_STR(in), &in, __time64_t)
-+#else
-+#define rte_trace_point_emit_time(in) __rte_trace_point_emit(RTE_STR(in), &in, time_t)
-+#endif
+ /**
+  * Tracepoint function to capture a blob.
+  *
+@@ -440,6 +441,11 @@ do { \
+ #define rte_trace_point_emit_double(in) __rte_trace_point_emit(RTE_STR(in), &in, double)
+ #define rte_trace_point_emit_ptr(in) __rte_trace_point_emit(RTE_STR(in), &in, uintptr_t)
+ #define rte_trace_point_emit_time_t(in) __rte_trace_point_emit(RTE_STR(in), &in, time_t)
 +#if defined(__x86_64__) && defined(__ILP32__)
 +#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(RTE_STR(in), &in, int64_t)
 +#else
 +#define rte_trace_point_emit_nsec(in) __rte_trace_point_emit(RTE_STR(in), &in, long)
 +#endif
-+
+ 
+ #define rte_trace_point_emit_u64_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, uint64_t)
+ #define rte_trace_point_emit_i64_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, int64_t)
+@@ -455,6 +461,11 @@ do { \
+ #define rte_trace_point_emit_float_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, float)
+ #define rte_trace_point_emit_double_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, double)
+ #define rte_trace_point_emit_time_t_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, time_t)
++#if defined(__x86_64__) && defined(__ILP32__)
++#define rte_trace_point_emit_nsec_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, int64_t)
++#else
++#define rte_trace_point_emit_nsec_ptr(in) __rte_trace_point_emit(RTE_STR(in)"_val", in, long)
++#endif
+ 
  #endif /* __DOXYGEN__ */
  
- #ifdef __cplusplus
---- dpdk-23.03/lib/ethdev/ethdev_trace.h.orig	2023-03-31 15:38:06.000000000 +0200
-+++ dpdk-23.03/lib/ethdev/ethdev_trace.h	2023-07-08 12:25:12.775041333 +0200
-@@ -1121,8 +1121,8 @@ RTE_TRACE_POINT(
- 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *time,
+--- dpdk-26.03/lib/ethdev/ethdev_trace.h.orig	2026-03-31 19:42:38.000000000 +0200
++++ dpdk-26.03/lib/ethdev/ethdev_trace.h	2026-05-15 21:22:46.885333216 +0200
+@@ -1122,7 +1122,7 @@ RTE_TRACE_POINT(
  		int ret),
  	rte_trace_point_emit_u16(port_id);
--	rte_trace_point_emit_size_t(time->tv_sec);
+ 	rte_trace_point_emit_time_t(time->tv_sec);
 -	rte_trace_point_emit_long(time->tv_nsec);
-+	rte_trace_point_emit_time(time->tv_sec);
 +	rte_trace_point_emit_nsec(time->tv_nsec);
  	rte_trace_point_emit_int(ret);
  )
  
-@@ -2159,8 +2159,8 @@ RTE_TRACE_POINT_FP(
- 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *timestamp,
+@@ -2152,7 +2152,7 @@ RTE_TRACE_POINT_FP(
  		uint32_t flags, int ret),
  	rte_trace_point_emit_u16(port_id);
--	rte_trace_point_emit_size_t(timestamp->tv_sec);
+ 	rte_trace_point_emit_time_t(timestamp->tv_sec);
 -	rte_trace_point_emit_long(timestamp->tv_nsec);
-+	rte_trace_point_emit_time(timestamp->tv_sec);
 +	rte_trace_point_emit_nsec(timestamp->tv_nsec);
  	rte_trace_point_emit_u32(flags);
  	rte_trace_point_emit_int(ret);
  )
-@@ -2171,8 +2171,8 @@ RTE_TRACE_POINT_FP(
- 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *timestamp,
+@@ -2164,7 +2164,7 @@ RTE_TRACE_POINT_FP(
  		int ret),
  	rte_trace_point_emit_u16(port_id);
--	rte_trace_point_emit_size_t(timestamp->tv_sec);
+ 	rte_trace_point_emit_time_t(timestamp->tv_sec);
 -	rte_trace_point_emit_long(timestamp->tv_nsec);
-+	rte_trace_point_emit_time(timestamp->tv_sec);
 +	rte_trace_point_emit_nsec(timestamp->tv_nsec);
  	rte_trace_point_emit_int(ret);
  )
  
-@@ -2182,8 +2182,8 @@ RTE_TRACE_POINT_FP(
- 	RTE_TRACE_POINT_ARGS(uint16_t port_id, const struct timespec *time,
+@@ -2175,7 +2175,7 @@ RTE_TRACE_POINT_FP(
  		int ret),
  	rte_trace_point_emit_u16(port_id);
--	rte_trace_point_emit_size_t(time->tv_sec);
+ 	rte_trace_point_emit_time_t(time->tv_sec);
 -	rte_trace_point_emit_long(time->tv_nsec);
-+	rte_trace_point_emit_time(time->tv_sec);
 +	rte_trace_point_emit_nsec(time->tv_nsec);
  	rte_trace_point_emit_int(ret);
  )
