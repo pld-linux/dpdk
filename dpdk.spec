@@ -18,12 +18,14 @@
 # - pkgconfig(netcope-common) for driver/net/nfb
 #   https://www.netcope.com/en/company/community-support/dpdk-libsze2 or https://www.liberouter.org/repo/dcpro/base/ - x86_64 only
 #   some old versions at https://homeproj.cesnet.cz/rpm/liberouter/{devel,stable}/SRPMS/
-# - libe_smi (<e_smi/e_smi.h>, libe_smi64) for drivers/power/amd_uncore
-#   https://github.com/amd/esmi_ib_library
 #
 # Conditional build:
 %bcond_without	apidocs		# API documentation
+%bcond_without	esmi		# AMD EPYC SMI support
 
+%ifnarch %{ix86} %{x8664} x32
+%undefine	with_esmi
+%endif
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
@@ -38,6 +40,7 @@ Patch1:		%{name}-no-mandb.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)
 BuildRequires:	elfutils-devel
+%{?with_esmi:BuildRequires:	esmi_ib_library-devel}
 # C11
 BuildRequires:	gcc >= 6:4.7
 %ifarch aarch64
@@ -183,6 +186,7 @@ fi
 	--includedir=%{_includedir}/dpdk \
 	-Dcpu_instruction_set=$arch \
 	-Ddeveloper_mode=disabled \
+	-Ddisable_drivers=%{!?with_esmi:power/amd_uncore} \
 	%{?with_apidocs:-Denable_docs=true} \
 	-Dplatform=generic
 
@@ -531,6 +535,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/librte_power.a
 %{_libdir}/librte_power_acpi.a
 %{_libdir}/librte_power_amd_pstate.a
+%if %{with esmi}
+%{_libdir}/librte_power_amd_uncore.a
+%endif
 %{_libdir}/librte_power_cppc.a
 %{_libdir}/librte_power_intel_pstate.a
 %{_libdir}/librte_power_intel_uncore.a
