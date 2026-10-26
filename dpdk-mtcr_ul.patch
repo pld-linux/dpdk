@@ -1,0 +1,23 @@
+--- dpdk-26.07/drivers/common/mlx5/linux/meson.build.orig	2026-07-22 16:53:16.000000000 +0200
++++ dpdk-26.07/drivers/common/mlx5/linux/meson.build	2026-10-25 18:42:25.162875820 +0100
+@@ -46,7 +46,8 @@ if static_ibverbs
+ endif
+ 
+ libmtcr_ul_found = false
+-lib = cc.find_library('mtcr_ul', required:false)
++cpp = meson.get_compiler('cpp')
++lib = cpp.find_library('mtcr_ul', required:false)
+ if lib.found() and cc.links(min_c_code, dependencies: lib)
+     libmtcr_ul_found = true
+     ext_deps += lib
+--- dpdk-26.07/meson.build.orig	2026-07-22 16:53:16.000000000 +0200
++++ dpdk-26.07/meson.build	2026-10-25 18:46:37.664841233 +0100
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: BSD-3-Clause
+ # Copyright(c) 2017-2019 Intel Corporation
+ 
+-project('DPDK', 'c',
++project('DPDK', 'c', 'cpp',
+         version: files('VERSION'),
+         license: 'BSD',
+         default_options: [

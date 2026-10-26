@@ -1,3 +1,4 @@
+# NOTE: changelogs/release notes available at: https://doc.dpdk.org/guides/rel_notes/
 # TODO:
 # - kernel part (igb_uio module)
 # - dlpack <https://github.com/dmlc/dlpack>, dlmc-core <https://github.com/dmlc/dmlc-core>, Apache TVM >= 0.10.0 <https://github.com/apache/tvm>, tvmdp <https://github.com/MarvellEmbeddedProcessors/tvmdp> for drivers/ml/cnxk
@@ -7,7 +8,7 @@
 #   https://software.intel.com/content/www/us/en/develop/articles/flexran-lte-and-5g-nr-fec-software-development-kit-modules.html (x86_64, proprietary)
 # - musdk (libmusdk) for drivers/common/mvep, drivers/crypto/mvsam, drivers/net/{mvneta,mvpp2}
 #   https://github.com/MarvellEmbeddedProcessors/musdk-marvell (aarch64?)
-# - libIPSec_MB for drivers/crypto/{aesni_gcm,aesni_mb,kasumi,snow3g,zuc}
+# - libIPSec_MB >= 1.4.0 for drivers/crypto/{aesni_gcm,aesni_mb}
 #   https://github.com/intel/intel-ipsec-mb (x86_64 only)
 # - libAArch64crypto for drivers/crypto/armv8
 #   https://github.com/ARM-software/AArch64cryptolib (aarch64)
@@ -29,14 +30,15 @@
 Summary:	Data Plane Development Kit libraries
 Summary(pl.UTF-8):	Biblioteki Data Plane Development Kit
 Name:		dpdk
-Version:	26.03
+Version:	26.07
 Release:	1
 License:	BSD (libraries and drivers), GPL v2 (kernel components)
 Group:		Libraries
 Source0:	https://fast.dpdk.org/rel/%{name}-%{version}.tar.xz
-# Source0-md5:	5ef5da0574619860b77871a822e6a6dd
+# Source0-md5:	cc780f20062614359fb1b8de6068c454
 Patch0:		%{name}-time.patch
 Patch1:		%{name}-no-mandb.patch
+Patch2:		%{name}-mtcr_ul.patch
 URL:		https://www.dpdk.org/
 # pkgconfig(libelf)
 BuildRequires:	elfutils-devel
@@ -67,7 +69,7 @@ BuildRequires:	meson >= 0.57.2
 BuildRequires:	mstflint-devel >= 4.31
 BuildRequires:	ninja >= 1.5
 BuildRequires:	numactl-devel
-BuildRequires:	openssl-devel
+BuildRequires:	openssl-devel >= 3.0.0
 BuildRequires:	pkgconfig
 BuildRequires:	python3 >= 3
 BuildRequires:	python3-elftools
@@ -91,7 +93,7 @@ ExcludeArch:	i386 i486 i586 pentium3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		abi_ver		26
-%define		lib_ver		%{abi_ver}.1
+%define		lib_ver		%{abi_ver}.2
 
 # non-function symbols per_lcore__lcore_id, per_lcore__rte_errno, per_lcore__thread_id, per_lcore_dpaa_io, per_lcore__dpaa2_io, per_lcore_held_bufs, per_lcore_dpaa2_held_bufs
 %define		skip_post_check_so	librte_acl.so.* librte_bbdev.so.* librte_bpf.so.* librte_compressdev.so.* librte_cryptodev.so.* librte_dispatcher.so.* librte_distributor.so.* librte_dma_cnxk.so.* librte_dma_dpaa2.so.* librte_dma_ioat.so.* librte_dmadev.so.* librte_efd.so.* librte_eventdev.so.* librte_ethdev.so.* librte_fib.so.* librte_gpudev.* librte_graph.so.* librte_gso.so.* librte_hash.so.* librte_ip_frag.so.* librte_ipsec.so.* librte_latencystats.so.* librte_lpm.so.* librte_mbuf.so.* librte_member.so.* librte_mempool.so.* librte_mldev.so.* librte_net.so.* librte_node.* librte_pcapng.so.* librte_pdcp.so.* librte_pdump.so.* librte_pipeline.so.* librte_port.so.* librte_power.so.* librte_rcu.so.* librte_reorder.so.* librte_rib.so.* librte_ring.so.* librte_sched.so.* librte_security.so.* librte_stack.so.* librte_timer.so.* librte_vhost.so.* librte_baseband.*.so.* librte_bus_.*.so.* librte_common_.*.so.* librte_compress_.*.so.* librte_crypto_.* librte_event_.*.so.* librte_mempool_.*.so.* librte_net_.*.so.* librte_raw_.*.so.* librte_regex_.*.so.* librte_vdpa_.*.so.*
@@ -110,20 +112,20 @@ architekturach procesorów.
 Summary:	Header files for DPDK libraries
 Summary(pl.UTF-8):	Pliki nagłówkowe bibliotek DPDK
 Group:		Development/Libraries
-Requires:	%{name} = %{version}-%{release}
-Requires:	elfutils-devel
-Requires:	jansson-devel
-Requires:	libarchive-devel
-Requires:	libbpf-devel >= 1.0
-Requires:	libbsd-devel
-Requires:	libibverbs-devel
-Requires:	libibverbs-driver-mana-devel
-Requires:	libibverbs-driver-mlx4-devel
-Requires:	libibverbs-driver-mlx5-devel
-Requires:	libisal-devel
-Requires:	libpcap-devel
-Requires:	openssl-devel
-Requires:	zlib-devel
+Requires:	%{name}%{?_isa} = %{version}-%{release}
+Requires:	elfutils-devel%{?_isa}
+Requires:	jansson-devel%{?_isa}
+Requires:	libarchive-devel%{?_isa}
+Requires:	libbpf-devel%{?_isa} >= 1.0
+Requires:	libbsd-devel%{?_isa}
+Requires:	libibverbs-devel%{?_isa}
+Requires:	libibverbs-driver-mana-devel%{?_isa}
+Requires:	libibverbs-driver-mlx4-devel%{?_isa}
+Requires:	libibverbs-driver-mlx5-devel%{?_isa}
+Requires:	libisal-devel%{?_isa}
+Requires:	libpcap-devel%{?_isa}
+Requires:	openssl-devel%{?_isa} >= 3.0.0
+Requires:	zlib-devel%{?_isa}
 
 %description devel
 Header files for DPDK libraries.
@@ -135,7 +137,7 @@ Pliki nagłówkowe bibliotek DPDK.
 Summary:	Static DPDK libraries
 Summary(pl.UTF-8):	Statyczne biblioteki DPDK
 Group:		Development/Libraries
-Requires:	%{name}-devel = %{version}-%{release}
+Requires:	%{name}-devel%{?_isa} = %{version}-%{release}
 
 %description static
 Static DPDK libraries.
@@ -159,10 +161,11 @@ Dokumentacja API bibliotek DPDK.
 %setup -q
 %patch -P0 -p1
 %patch -P1 -p1
+%patch -P2 -p1
 
 %{__sed} -i -e '1s,/usr/bin/env python3,%{__python3},' \
 	buildtools/dpdk-cmdline-gen.py \
-	usertools/dpdk-{devbind,hugepages,pmdinfo,rss-flows,telemetry,telemetry-exporter}.py \
+	usertools/dpdk-{devbind,hugepages,pmdinfo,rss-flows,telemetry,telemetry-exporter,telemetry-watcher}.py \
 	examples/ipsec-secgw/test/*.py \
 	examples/pipeline/examples/vxlan_table.py
 
@@ -230,6 +233,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(755,root,root) %{_bindir}/dpdk-rss-flows.py
 %attr(755,root,root) %{_bindir}/dpdk-telemetry.py
 %attr(755,root,root) %{_bindir}/dpdk-telemetry-exporter.py
+%attr(755,root,root) %{_bindir}/dpdk-telemetry-watcher.py
 %ifarch %{x8664} aarch64
 %attr(755,root,root) %{_bindir}/dpdk-dumpcap
 %attr(755,root,root) %{_bindir}/dpdk-pdump
